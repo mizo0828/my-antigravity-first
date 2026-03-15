@@ -5,6 +5,8 @@ import { Plus, Trash2, TrendingDown, TrendingUp, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Holding } from "@/types";
+import { Label } from "@/components/ui/label";
 
 interface StockQuote {
   symbol: string;
@@ -14,16 +16,18 @@ interface StockQuote {
 }
 
 interface PortfolioManagerProps {
-  symbols: string[];
-  setSymbols: (symbols: string[]) => void;
+  holdings: Holding[];
+  setHoldings: (holdings: Holding[]) => void;
 }
 
-export function PortfolioManager({ symbols, setSymbols }: PortfolioManagerProps) {
+export function PortfolioManager({ holdings, setHoldings }: PortfolioManagerProps) {
   const [inputSymbol, setInputSymbol] = useState("");
   const [quotes, setQuotes] = useState<StockQuote[]>([]);
   const [loading, setLoading] = useState(false);
   const [errorVisible, setErrorVisible] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
+
+  const symbols = holdings.map(h => h.symbol);
 
   const fetchQuotes = async () => {
     if (symbols.length === 0) return;
@@ -75,7 +79,7 @@ export function PortfolioManager({ symbols, setSymbols }: PortfolioManagerProps)
       if (!symbolData || symbolData.error || !symbolData.quote?.regularMarketPrice) {
         setErrorVisible(true);
       } else {
-        setSymbols([...symbols, trimmedSymbol]);
+        setHoldings([...holdings, { symbol: trimmedSymbol, quantity: 1, purchasePrice: symbolData.quote.regularMarketPrice }]);
         setInputSymbol("");
       }
     } catch (err) {
@@ -87,8 +91,12 @@ export function PortfolioManager({ symbols, setSymbols }: PortfolioManagerProps)
   };
 
   const removeSymbol = (symbolToRemove: string) => {
-    setSymbols(symbols.filter((s) => s !== symbolToRemove));
+    setHoldings(holdings.filter((h) => h.symbol !== symbolToRemove));
     setQuotes(quotes.filter((q) => q.symbol !== symbolToRemove));
+  };
+
+  const updateHolding = (symbol: string, field: keyof Holding, value: number) => {
+    setHoldings(holdings.map(h => h.symbol === symbol ? { ...h, [field]: value } : h));
   };
 
   return (
@@ -133,40 +141,72 @@ export function PortfolioManager({ symbols, setSymbols }: PortfolioManagerProps)
 
         {/* 銘柄リスト */}
         <div className="flex-1 overflow-auto rounded-md border bg-muted/10 p-2">
-          {quotes.length === 0 && !loading ? (
+          {holdings.length === 0 && !loading ? (
             <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
               銘柄が追加されていません
             </div>
           ) : (
              <div className="flex flex-col gap-2">
-              {quotes.map((quote) => {
-                const isPositive = quote.regularMarketChangePercent >= 0;
+              {holdings.map((holding) => {
+                const quote = quotes.find(q => q.symbol === holding.symbol);
+                const isPositive = quote ? quote.regularMarketChangePercent >= 0 : true;
                 return (
-                  <div key={quote.symbol} className="flex items-center justify-between p-3 rounded-lg bg-card border shadow-sm transition-all hover:border-primary/50">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-sm">{quote.symbol}</span>
-                      <span className="text-xs text-muted-foreground truncate max-w-[120px]">{quote.shortName}</span>
-                    </div>
-                    
-                    <div className="flex items-center gap-4">
-                      <div className="flex flex-col items-end">
-                        <span className="font-mono font-medium">
-                          {quote.regularMarketPrice ? quote.regularMarketPrice.toLocaleString(undefined, { maximumFractionDigits: 2 }) : 'N/A'}
-                        </span>
-                        <div className={`flex items-center text-xs font-medium ${isPositive ? 'text-emerald-500' : 'text-rose-500'}`}>
-                          {isPositive ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
-                          {quote.regularMarketChangePercent ? `${quote.regularMarketChangePercent.toFixed(2)}%` : '0.00%'}
-                        </div>
+                  <div key={holding.symbol} className="flex flex-col gap-3 p-4 rounded-lg bg-card border shadow-sm transition-all hover:border-primary/50 relative group">
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-sm tracking-wider">{holding.symbol}</span>
+                        <span className="text-xs text-muted-foreground truncate max-w-[150px]">{quote?.shortName || (loading ? '読み込み中...' : '---')}</span>
                       </div>
                       
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-8 w-8"
-                        onClick={() => removeSymbol(quote.symbol)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-4">
+                        <div className="flex flex-col items-end">
+                          <span className="font-mono font-medium text-sm">
+                            {quote?.regularMarketPrice ? quote.regularMarketPrice.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '---'}
+                          </span>
+                          {quote && (
+                            <div className={`flex items-center text-[10px] font-medium ${isPositive ? 'text-emerald-500' : 'text-rose-500'}`}>
+                              {isPositive ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                              {quote.regularMarketChangePercent ? `${quote.regularMarketChangePercent.toFixed(2)}%` : '0.00%'}
+                            </div>
+                          )}
+                        </div>
+                        
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-8 w-8"
+                          onClick={() => removeSymbol(holding.symbol)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-muted/30">
+                      <div className="flex flex-col gap-1">
+                        <Label htmlFor={`qty-${holding.symbol}`} className="text-[10px] text-muted-foreground">保有株数</Label>
+                        <Input
+                          id={`qty-${holding.symbol}`}
+                          type="number"
+                          min="0"
+                          step="any"
+                          value={holding.quantity}
+                          onChange={(e) => updateHolding(holding.symbol, 'quantity', parseFloat(e.target.value) || 0)}
+                          className="h-7 text-xs bg-muted/20 border-none"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <Label htmlFor={`price-${holding.symbol}`} className="text-[10px] text-muted-foreground">購入単価</Label>
+                        <Input
+                          id={`price-${holding.symbol}`}
+                          type="number"
+                          min="0"
+                          step="any"
+                          value={holding.purchasePrice}
+                          onChange={(e) => updateHolding(holding.symbol, 'purchasePrice', parseFloat(e.target.value) || 0)}
+                          className="h-7 text-xs bg-muted/20 border-none"
+                        />
+                      </div>
                     </div>
                   </div>
                 );

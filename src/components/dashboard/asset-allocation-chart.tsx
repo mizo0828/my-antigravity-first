@@ -22,30 +22,41 @@ const COLORS = [
   "#06b6d4", // cyan-500
 ];
 
+import { Holding } from "@/types";
+
 interface AssetAllocationChartProps {
-  symbols: string[];
+  holdings: Holding[];
 }
 
-export function AssetAllocationChart({ symbols }: AssetAllocationChartProps) {
+export function AssetAllocationChart({ holdings }: AssetAllocationChartProps) {
   const [chartData, setChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const symbols = holdings.map(h => h.symbol);
+
   const fetchData = async () => {
+    if (symbols.length === 0) return;
     setLoading(true);
     try {
       const res = await fetch(`/api/market-data?symbols=${symbols.join(",")}&period=1mo`);
       const result = await res.json();
       
       if (result.data) {
-        // 現在の価格を基に疑似的な資産構成割合を算出
-        // ※実際はユーザーの「保有株数 × 現在価格」で計算しますが、今回はデモとして均等保有(1株ずつ)と仮定
+        // 保有株数 × 現在価格 で評価額を算出
         const allocationData = result.data
           .filter((item: any) => !item.error && item.quote?.regularMarketPrice)
-          .map((item: any) => ({
-            name: item.quote?.shortName || item.symbol,
-            symbol: item.symbol,
-            value: item.quote.regularMarketPrice,
-          }));
+          .map((item: any) => {
+            const holding = holdings.find(h => h.symbol === item.symbol);
+            const quantity = holding?.quantity || 0;
+            return {
+              name: item.quote?.shortName || item.symbol,
+              symbol: item.symbol,
+              value: quantity * item.quote.regularMarketPrice,
+              price: item.quote.regularMarketPrice,
+              quantity: quantity
+            };
+          })
+          .filter((item: any) => item.value > 0); // 評価額が0のものは表示しない（ベンチマーク等）
 
         setChartData(allocationData);
       }
