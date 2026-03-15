@@ -83,7 +83,7 @@ export function AssetAllocationChart({ holdings }: AssetAllocationChartProps) {
       <CardHeader className="pb-2">
          <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-xl font-bold">資産構成比率</CardTitle>
+            <CardTitle className="text-xl font-bold">あなたの資産</CardTitle>
             <CardDescription>現在価格ベースの保有比率（デモ）</CardDescription>
           </div>
           <button onClick={fetchData} disabled={loading} className="p-2 rounded-md hover:bg-muted/50">

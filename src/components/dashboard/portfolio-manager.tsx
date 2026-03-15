@@ -103,7 +103,7 @@ export function PortfolioManager({ holdings, setHoldings }: PortfolioManagerProp
     <Card className="shadow-lg border-muted/50 w-full h-full flex flex-col">
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-xl font-bold">ポートフォリオ管理</CardTitle>
+          <CardTitle className="text-xl font-bold">保有銘柄リスト</CardTitle>
           <Button variant="ghost" size="icon" onClick={fetchQuotes} disabled={loading}>
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin text-muted-foreground" : "text-muted-foreground hover:text-foreground"}`} />
           </Button>

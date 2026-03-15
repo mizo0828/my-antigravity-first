@@ -23,7 +23,7 @@ export default function DashboardClient() {
     <div className="min-h-screen bg-background font-[family-name:var(--font-geist-sans)] p-6 md:p-12">
       <header className="flex items-center justify-between mb-8 pb-4 border-b">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">投資ダッシュボード</h1>
+          <h1 className="text-3xl font-bold tracking-tight">投資マネージャーくん</h1>
           <p className="text-muted-foreground mt-1">日本株・米国インデックスの管理と比較</p>
         </div>
         <ModeToggle />
