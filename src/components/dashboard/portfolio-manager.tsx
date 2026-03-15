@@ -22,6 +22,8 @@ export function PortfolioManager({ symbols, setSymbols }: PortfolioManagerProps)
   const [inputSymbol, setInputSymbol] = useState("");
   const [quotes, setQuotes] = useState<StockQuote[]>([]);
   const [loading, setLoading] = useState(false);
+  const [errorVisible, setErrorVisible] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
 
   const fetchQuotes = async () => {
     if (symbols.length === 0) return;
@@ -49,16 +51,39 @@ export function PortfolioManager({ symbols, setSymbols }: PortfolioManagerProps)
     fetchQuotes();
   }, [symbols]);
 
-  const addSymbol = (e: React.FormEvent) => {
+  const addSymbol = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputSymbol.trim()) return;
+    setErrorVisible(false);
+    const trimmedSymbol = inputSymbol.trim().toUpperCase();
+    if (!trimmedSymbol) return;
     
-    // 簡易的な重複・形式チェック（大文字化して追加）
-    const newSymbol = inputSymbol.trim().toUpperCase();
-    if (!symbols.includes(newSymbol)) {
-      setSymbols([...symbols, newSymbol]);
+    // 重複チェック
+    if (symbols.includes(trimmedSymbol)) {
+      setInputSymbol("");
+      return;
     }
-    setInputSymbol("");
+
+    setIsValidating(true);
+    try {
+      // 銘柄の妥当性を確認するためにAPIを叩く
+      const res = await fetch(`/api/market-data?symbols=${trimmedSymbol}&period=1mo`);
+      const result = await res.json();
+      
+      const symbolData = result.data?.[0];
+      
+      // エラーが含まれている、または有効な価格データがない場合は無効とみなす
+      if (!symbolData || symbolData.error || !symbolData.quote?.regularMarketPrice) {
+        setErrorVisible(true);
+      } else {
+        setSymbols([...symbols, trimmedSymbol]);
+        setInputSymbol("");
+      }
+    } catch (err) {
+      console.error("Validation failed:", err);
+      setErrorVisible(true);
+    } finally {
+      setIsValidating(false);
+    }
   };
 
   const removeSymbol = (symbolToRemove: string) => {
@@ -79,17 +104,32 @@ export function PortfolioManager({ symbols, setSymbols }: PortfolioManagerProps)
       
       <CardContent className="flex-1 flex flex-col gap-6">
         {/* 追加フォーム */}
-        <form onSubmit={addSymbol} className="flex gap-2">
-          <Input
-            placeholder="銘柄コード (例: 7203.T, AAPL)"
-            value={inputSymbol}
-            onChange={(e) => setInputSymbol(e.target.value)}
-            className="flex-1"
-          />
-          <Button type="submit" variant="secondary">
-            <Plus className="mr-2 h-4 w-4" /> 追加
-          </Button>
-        </form>
+        <div className="flex flex-col gap-2">
+          <form onSubmit={addSymbol} className="flex gap-2">
+            <Input
+              placeholder="銘柄コード (例: 7203.T, AAPL)"
+              value={inputSymbol}
+              onChange={(e) => {
+                setInputSymbol(e.target.value);
+                if (errorVisible) setErrorVisible(false);
+              }}
+              className={`flex-1 ${errorVisible ? "border-destructive focus-visible:ring-destructive" : ""}`}
+              disabled={isValidating}
+            />
+            <Button type="submit" variant="secondary" disabled={isValidating}>
+              {isValidating ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <><Plus className="mr-2 h-4 w-4" /> 追加</>
+              )}
+            </Button>
+          </form>
+          {errorVisible && (
+            <p className="text-xs text-destructive font-medium ml-1 animate-in fade-in slide-in-from-top-1">
+              銘柄コードが間違っています
+            </p>
+          )}
+        </div>
 
         {/* 銘柄リスト */}
         <div className="flex-1 overflow-auto rounded-md border bg-muted/10 p-2">
