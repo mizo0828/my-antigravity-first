@@ -93,7 +93,7 @@ export function ComparisonChart({ symbols }: ComparisonChartProps) {
 
   useEffect(() => {
     fetchData();
-  }, [symbols, period]);
+  }, [symbols.join(","), period]);
 
   const formatYAxis = (tickItem: number) => {
     return `${tickItem > 0 ? '+' : ''}${tickItem.toFixed(1)}%`;

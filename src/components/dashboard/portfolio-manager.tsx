@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Plus, Trash2, TrendingDown, TrendingUp, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,7 @@ export function PortfolioManager({ holdings, setHoldings }: PortfolioManagerProp
   const [errorVisible, setErrorVisible] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
 
-  const symbols = holdings.map(h => h.symbol);
+  const symbols = useMemo(() => holdings.map((h: Holding) => h.symbol), [holdings]);
 
   const fetchQuotes = async () => {
     if (symbols.length === 0) return;
@@ -53,7 +53,7 @@ export function PortfolioManager({ holdings, setHoldings }: PortfolioManagerProp
 
   useEffect(() => {
     fetchQuotes();
-  }, [symbols]);
+  }, [symbols.join(",")]); // 文字列として依存関係を持たせることで配列の参照変更による再実行を防ぐ
 
   const addSymbol = async (e: React.FormEvent) => {
     e.preventDefault();

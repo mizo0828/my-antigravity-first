@@ -82,15 +82,24 @@ export async function GET(request: Request) {
               date: item.date instanceof Date ? item.date.toISOString().split('T')[0] : item.date,
               close: item.close,
             })).filter(item => item.date && item.close !== null) : [],
+            isMock: false
           };
         } catch (err) {
           console.error(`Error fetching data for ${symbol}:`, err);
-          if (err instanceof Error) {
-            console.error(err.message, err.stack);
-          }
+          
+          // API制限（429 Too Many Requests）などの場合、回避策としてモックデータを返す
+          console.warn(`Falling back to mock data for ${symbol} due to API issues.`);
+          
           return {
             symbol,
+            quote: {
+              regularMarketPrice: getMockPrice(symbol),
+              regularMarketChangePercent: (Math.random() * 4) - 2, // -2% to +2%
+              shortName: SYMBOL_NAME_MAP[symbol] || symbol,
+            },
+            historical: generateMockHistorical(period),
             error: err instanceof Error ? err.message : 'Failed to fetch data',
+            isMock: true
           };
         }
       })
@@ -104,4 +113,35 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
+}
+
+// モック価格生成
+function getMockPrice(symbol: string): number {
+  if (symbol.includes('^N225')) return 38000 + (Math.random() * 1000);
+  if (symbol.includes('^GSPC')) return 5000 + (Math.random() * 100);
+  if (symbol.includes('.T')) return 3000 + (Math.random() * 500);
+  return 100 + (Math.random() * 50);
+}
+
+// モック履歴データ生成
+function generateMockHistorical(period: string) {
+  const data = [];
+  const now = new Date();
+  let days = 30;
+  
+  if (period === '3mo') days = 90;
+  if (period === '6mo') days = 180;
+  if (period === '1y') days = 365;
+  
+  let currentPrice = 100;
+  for (let i = days; i >= 0; i--) {
+    const date = new Date(now);
+    date.setDate(date.getDate() - i);
+    currentPrice = currentPrice * (1 + (Math.random() * 0.04 - 0.02));
+    data.push({
+      date: date.toISOString().split('T')[0],
+      close: currentPrice
+    });
+  }
+  return data;
 }

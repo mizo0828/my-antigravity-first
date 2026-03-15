@@ -28,11 +28,13 @@ interface AssetAllocationChartProps {
   holdings: Holding[];
 }
 
+import { useMemo } from "react";
+
 export function AssetAllocationChart({ holdings }: AssetAllocationChartProps) {
   const [chartData, setChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const symbols = holdings.map(h => h.symbol);
+  const symbols = useMemo(() => holdings.map(h => h.symbol), [holdings]);
 
   const fetchData = async () => {
     if (symbols.length === 0) return;
@@ -69,7 +71,7 @@ export function AssetAllocationChart({ holdings }: AssetAllocationChartProps) {
 
   useEffect(() => {
     fetchData();
-  }, [symbols]);
+  }, [symbols.join(",")]);
 
   // 通貨フォーマット (簡易的に数値のみカンマ区切り)
   const formatValue = (value: number) => {

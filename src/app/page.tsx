@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { PortfolioManager } from "@/components/dashboard/portfolio-manager";
 import { ComparisonChart } from "@/components/dashboard/comparison-chart";
@@ -17,7 +17,7 @@ export default function DashboardClient() {
     { symbol: "^GSPC", quantity: 0, purchasePrice: 0 }
   ]);
 
-  const symbols = holdings.map(h => h.symbol);
+  const symbols = useMemo(() => holdings.map(h => h.symbol), [holdings]);
 
   return (
     <div className="min-h-screen bg-background font-[family-name:var(--font-geist-sans)] p-6 md:p-12">
